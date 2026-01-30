@@ -9,12 +9,9 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libsqlite3-dev \
     libzip-dev \
+    nodejs \
+    npm \
     && docker-php-ext-install pdo pdo_sqlite zip
-
-# Set Apache document root to Laravel public folder
-ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
-RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
-RUN sed -ri 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -28,14 +25,23 @@ COPY . .
 # Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
+# Install JS dependencies & build Vite assets
+RUN npm install
+RUN npm run build
+
 # Create SQLite database file
-RUN mkdir -p database && touch database/database.sqlite
+RUN touch database/database.sqlite
 
 # Fix permissions
 RUN chown -R www-data:www-data storage bootstrap/cache database
 
-# Expose Apache port
+# Set Apache document root to Laravel public folder
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
+RUN sed -ri 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+
+# Expose port
 EXPOSE 80
 
-# Start Apache
+# Run migrations and start Apache
 CMD php artisan migrate --force && apache2-foreground
