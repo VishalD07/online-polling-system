@@ -24,7 +24,9 @@ RUN composer install --no-dev --optimize-autoloader
 RUN touch database/database.sqlite
 
 # Fix permissions
-RUN chown -R www-data:www-data storage bootstrap/cache
+RUN chown -R www-data:www-data storage bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache
+
 
 # Set Apache document root to Laravel public folder
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
