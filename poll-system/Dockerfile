@@ -16,7 +16,12 @@ COPY . .
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
+
+# Create SQLite database
+RUN touch database/database.sqlite
 
 # Fix permissions
 RUN chown -R www-data:www-data storage bootstrap/cache
